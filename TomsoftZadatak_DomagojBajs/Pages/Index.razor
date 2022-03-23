@@ -1,0 +1,65 @@
+﻿@page "/"
+
+@inject IHttpClientFactory _clientFactory
+
+<PageTitle>Index</PageTitle>
+
+<h1>Zadatak 1</h1>
+<p>
+    <input @bind="inputValue" />
+</p>
+<p>
+    <button @onclick="OnClickAsync">
+        Traži
+    </button>
+</p>
+@if (string.IsNullOrWhiteSpace(errorString) == false)
+{
+    <div class="h2">@errorString</div>
+}
+else if (artikli is null)
+{
+    <div class="h4">Unesite naziv artikla ili dio naziva</div>
+}
+else
+{
+    <table class="table table-striped">
+        <thead class="thead-dark">
+            <tr>
+            <th>Id</th>
+            <th>Naziv</th>
+            </tr>
+        </thead>
+         <tbody>
+                @foreach(var z in artikli.Rezultati.FirstOrDefault().Artikli)
+                {
+                    <tr>
+                        <td>@z.ArtiklId</td>
+                        <td>@z.ArtiklNaziv</td>
+                    </tr>
+                 }
+            </tbody>
+     </table>
+}
+@code {
+
+    private string? inputValue;
+    ArtikliPoImenuModel? artikli;
+
+    string? errorString;
+
+    protected async void OnClickAsync()
+    {
+        var client = _clientFactory.CreateClient("api");
+        try
+        {
+            artikli = await client.GetFromJsonAsync<ArtikliPoImenuModel>("artikli/naziv/" + inputValue);
+            StateHasChanged();
+            errorString = null;
+        }
+        catch (Exception ex)
+        {
+            errorString = $"Error getting data : {ex.Message}";
+        }
+    }
+}

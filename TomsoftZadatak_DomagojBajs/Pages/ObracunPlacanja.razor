@@ -1,0 +1,129 @@
+﻿@page "/zadatak2"
+@using System.Globalization
+@inject IHttpClientFactory _clientFactory
+<h3>Zadatak 2</h3>
+@if (string.IsNullOrWhiteSpace(errorString) == false)
+{
+    <div class="h2">@errorString</div>
+}
+else if (popisPlacanja is null)
+{
+    <div class="h4">Trenutno name popisa</div>
+}
+else{
+    <div style="display:flex; flex-direction: row; justify-content: left; align-items: center" >
+        <label class="col-sm-2 col-form-label" style="width:250px">
+            Odaberite nacin plaćanja
+        </label>
+        <select class="form-control selectpicker" style="width:250px" @onchange="OnValueChanged">
+            <option style="text-align:center">--Odaberite--</option>
+            @foreach (var item in popisPlacanja)
+            {
+                <option value="@item.VrstaPlacanjaUid">@item.NazivVrstePlacanja</option> 
+            }
+        </select>
+    </div>
+    }
+<div class="form-group row">
+    <label for="odDatuma" class="col-sm-2 col-form-label" style="width:250px">
+        Od datuma
+    </label>
+    <div class="col-sm-2" >
+        <input type="date" @bind="odDatuma" class="form-control" style="width:250px"/>
+    </div>
+</div>
+<div class="form-group row" >
+    <label for="doDatuma" class="col-sm-2 col-form-label" style="width:250px">
+        Do datuma
+    </label>
+    <div class="col-sm-2">
+        <input type="date" @bind="doDatuma" class="form-control" style="width:250px"/>
+    </div>
+</div>
+<p>
+    <button @onclick="OnClickAsync">
+        Traži
+    </button>
+</p>
+@if (string.IsNullOrWhiteSpace(errorString) == false)
+{
+    <div class="h2">@errorString</div>
+}
+else if (obracunPlacanja is null)
+{
+    <div class="h4">Unesite način plaćanja i datum</div>
+}
+else
+{
+    <table class="table table-striped">
+        <thead class="thead-dark">
+            <tr>
+            <th>Vrste plaćanja uid</th>
+            <th>Naziv</th>
+            <th>Iznos</th>
+            <th>Nadgrupa plaćanja UID</th>
+            <th>Nadgrupa plaćanja Naziv</th>
+            </tr>
+        </thead>
+         <tbody>
+                @foreach(var z in obracunPlacanja.Rezultati.FirstOrDefault().ObracunPlacanja)
+                {
+                    <tr>
+                        <td>@z.VrstePlacanjaUid</td>
+                        <td>@z.NazivPlacanja</td>
+                        <td>@z.Iznos</td>
+                        <td>@z.NadgrupaPlacanjaUid</td>
+                        <td>@z.NadgrupaPlacanjaNaziv</td>
+                    </tr>
+                 }
+            </tbody>
+     </table>
+}
+
+
+@code {
+    Vrsta_Placanja[] popisPlacanja;
+    string placanje_id;
+    string errorString;
+    private DateTime odDatuma = DateTime.Now.AddYears(-10);
+    private DateTime doDatuma = DateTime.Now;
+    ObracunPlacanjaModel? obracunPlacanja;    
+
+    protected override async Task OnInitializedAsync()
+    {
+        var client = _clientFactory.CreateClient("api");
+        try
+        {
+            var getPlacanje = await client.GetFromJsonAsync<VrstePlacanja>("vrsteplacanja/list");
+            popisPlacanja = getPlacanje.RezultatiVrstePlacanja.First().VrstaPlacanja;
+        }
+        catch (Exception ex)
+        {
+            errorString = $"Error getting data : {ex.Message}";
+        }
+    }
+
+    protected async void OnClickAsync()
+    {
+        var client = _clientFactory.CreateClient("api");
+        try
+        {
+            var formatDatumOd = odDatuma.ToString("d.M.yyyy", CultureInfo.InvariantCulture);
+            var formatDatumDo = doDatuma.ToString("d.M.yyyy", CultureInfo.InvariantCulture);
+            placanje_id = "4986-1";
+            obracunPlacanja = await client.GetFromJsonAsync<ObracunPlacanjaModel>("mpobracun/placanja/" + placanje_id + "/" + formatDatumOd + "/" + formatDatumDo);
+            StateHasChanged();
+            errorString = null;
+        }
+        catch (Exception ex)
+        {
+            errorString = $"Error getting data : {ex.Message}";
+        }
+    }
+
+    private void OnValueChanged(ChangeEventArgs e)
+    {
+        placanje_id = e.Value.ToString();
+    }
+
+}
